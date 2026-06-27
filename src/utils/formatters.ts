@@ -1,3 +1,7 @@
+export function maskAccount(account: string): string {
+  return '•'.repeat(account.length - 3) + account.slice(-3)
+}
+
 export function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-')
   return `${day}/${month}/${year}`
