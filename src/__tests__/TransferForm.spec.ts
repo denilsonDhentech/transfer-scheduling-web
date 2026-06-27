@@ -50,7 +50,13 @@ describe('TransferForm', () => {
 
     expect(wrapper.text()).toContain('10 dígitos')
     expect(wrapper.text()).toContain('maior que zero')
-    expect(wrapper.text()).toContain('data de transferência')
+    // transferDate defaults to today, so no date error on empty submit
+  })
+
+  it('defaults transferDate to today', () => {
+    const wrapper = mount(TransferForm)
+    const input = wrapper.find('#transferDate').element as HTMLInputElement
+    expect(input.value).toBe(TODAY)
   })
 
   it('calls scheduleTransfer with correct data on valid submission', async () => {
@@ -68,15 +74,19 @@ describe('TransferForm', () => {
     })
   })
 
-  it('shows success feedback with fee and scheduling date after valid submission', async () => {
+  it('shows success feedback with amount, masked accounts, fee and scheduling date', async () => {
     vi.mocked(transferApi.scheduleTransfer).mockResolvedValue(mockResponse)
     const wrapper = mount(TransferForm)
     await fillValidForm(wrapper)
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Transferência agendada com sucesso!')
-    expect(wrapper.text()).toContain('27,50')
+    const text = wrapper.text()
+    expect(text).toContain('Transferência agendada com sucesso!')
+    expect(text).toContain('•••••••890')
+    expect(text).toContain('•••••••321')
+    expect(text).toContain('500')
+    expect(text).toContain('27,50')
   })
 
   it('shows API error message when the request fails', async () => {

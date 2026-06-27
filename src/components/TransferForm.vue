@@ -2,15 +2,24 @@
 import { reactive, ref } from 'vue'
 import { scheduleTransfer } from '../api/transferApi'
 import { validateTransferForm, hasErrors } from '../utils/transferValidation'
-import { formatDate, formatCurrency } from '../utils/formatters'
+import { formatDate, formatCurrency, maskAccount } from '../utils/formatters'
 import type { TransferResponse } from '../types/transfer'
 import type { FormErrors } from '../utils/transferValidation'
+
+function todayISO(): string {
+  const d = new Date()
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-')
+}
 
 const form = reactive({
   sourceAccount: '',
   destinationAccount: '',
   amount: null as number | null,
-  transferDate: '',
+  transferDate: todayISO(),
 })
 
 const errors = ref<FormErrors>({})
@@ -109,7 +118,10 @@ async function handleSubmit() {
     <div v-if="apiError" class="feedback error-box">{{ apiError }}</div>
 
     <div v-if="successResult" class="feedback success-box">
-      <p>Transferência agendada com sucesso!</p>
+      <p class="success-title">Transferência agendada com sucesso!</p>
+      <p>Origem: {{ maskAccount(successResult.sourceAccount) }}</p>
+      <p>Destino: {{ maskAccount(successResult.destinationAccount) }}</p>
+      <p>Valor: {{ formatCurrency(successResult.amount) }}</p>
       <p>Taxa: {{ formatCurrency(successResult.fee) }}</p>
       <p>Data de agendamento: {{ formatDate(successResult.schedulingDate) }}</p>
     </div>
@@ -182,6 +194,11 @@ input:focus {
 
 .success-box p {
   margin: 0;
+}
+
+.success-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem !important;
 }
 
 button {
