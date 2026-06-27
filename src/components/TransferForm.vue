@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue'
 import { scheduleTransfer } from '../api/transferApi'
 import { validateTransferForm, hasErrors } from '../utils/transferValidation'
+import { formatDate, formatCurrency } from '../utils/formatters'
 import type { TransferResponse } from '../types/transfer'
 import type { FormErrors } from '../utils/transferValidation'
 
@@ -18,7 +19,7 @@ const successResult = ref<TransferResponse | null>(null)
 const apiError = ref<string | null>(null)
 
 function onAmountInput(event: Event) {
-  const value = (event.target as HTMLInputElement).valueAsNumber
+  const value = parseFloat((event.target as HTMLInputElement).value)
   form.amount = isNaN(value) ? null : value
 }
 
@@ -53,14 +54,6 @@ async function handleSubmit() {
   }
 }
 
-function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-')
-  return `${day}/${month}/${year}`
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
 </script>
 
 <template>

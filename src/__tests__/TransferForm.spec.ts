@@ -6,10 +6,7 @@ import type { TransferResponse } from '../types/transfer'
 
 vi.mock('../api/transferApi')
 
-function todayStr(): string {
-  const d = new Date()
-  return d.toISOString().split('T')[0]
-}
+const TODAY = new Date().toISOString().split('T')[0]
 
 const mockResponse: TransferResponse = {
   id: 1,
@@ -17,17 +14,16 @@ const mockResponse: TransferResponse = {
   destinationAccount: '0987654321',
   amount: 500,
   fee: 27.5,
-  transferDate: todayStr(),
-  schedulingDate: todayStr(),
+  transferDate: TODAY,
+  schedulingDate: TODAY,
 }
 
 async function fillValidForm(wrapper: ReturnType<typeof mount>) {
   await wrapper.find('#sourceAccount').setValue('1234567890')
   await wrapper.find('#destinationAccount').setValue('0987654321')
-  const amountInput = wrapper.find('#amount').element as HTMLInputElement
-  Object.defineProperty(amountInput, 'valueAsNumber', { value: 500, configurable: true })
+  await wrapper.find('#amount').setValue('500')
   await wrapper.find('#amount').trigger('input')
-  await wrapper.find('#transferDate').setValue(todayStr())
+  await wrapper.find('#transferDate').setValue(TODAY)
 }
 
 describe('TransferForm', () => {
@@ -68,7 +64,7 @@ describe('TransferForm', () => {
       sourceAccount: '1234567890',
       destinationAccount: '0987654321',
       amount: 500,
-      transferDate: todayStr(),
+      transferDate: TODAY,
     })
   })
 
