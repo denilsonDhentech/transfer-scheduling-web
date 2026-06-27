@@ -85,21 +85,22 @@ onMounted(fetchTransfers)
 h2 {
   margin: 0;
   font-size: 1.25rem;
-  color: #111827;
+  color: var(--color-text-primary);
 }
 
 .refresh-btn {
   padding: 0.375rem 0.875rem;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 0.875rem;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #e5e7eb;
+  background: var(--color-surface-hover);
 }
 
 .refresh-btn:disabled {
@@ -114,15 +115,15 @@ h2 {
 }
 
 .error-box {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
 }
 
 .info-box {
-  background: #f9fafb;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border: 1px solid var(--color-info-border);
 }
 
 .table-wrapper {
@@ -136,26 +137,26 @@ table {
 }
 
 thead {
-  background: #f3f4f6;
+  background: var(--color-surface-subtle);
 }
 
 th {
   padding: 0.625rem 0.875rem;
   text-align: left;
   font-weight: 600;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
 }
 
 td {
   padding: 0.625rem 0.875rem;
-  color: #111827;
-  border-bottom: 1px solid #f3f4f6;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-light);
   white-space: nowrap;
 }
 
 tbody tr:hover {
-  background: #f9fafb;
+  background: var(--color-surface-hover);
 }
 </style>

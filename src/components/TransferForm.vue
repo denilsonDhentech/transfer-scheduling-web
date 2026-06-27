@@ -125,6 +125,7 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  width: 100%;
   max-width: 480px;
 }
 
@@ -137,16 +138,18 @@ async function handleSubmit() {
 label {
   font-weight: 600;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 input {
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 1rem;
   outline: none;
-  transition: border-color 0.2s;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, background 0.2s;
 }
 
 input:focus {
@@ -166,15 +169,15 @@ input:focus {
 }
 
 .error-box {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
 }
 
 .success-box {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-border);
 }
 
 .success-box p {
