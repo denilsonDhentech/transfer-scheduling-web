@@ -41,9 +41,9 @@ CSS puro com `<style scoped>` por componente. Mantém o bundle pequeno e evita d
 
 Todas as cores são definidas como variáveis em `:root` (tema claro) e sobrescritas em `html.dark` (tema escuro). A troca de tema é feita por um toggle no header e persiste entre sessões via `localStorage`.
 
-### Proxy Vite para evitar CORS
+### Proxy Vite com `changeOrigin`
 
-Requisições para `/transfers` são redirecionadas pelo Vite para `http://localhost:8080` em tempo de desenvolvimento, sem necessidade de configurar CORS no backend.
+Requisições para `/transfers` são redirecionadas pelo Vite para `http://localhost:8080` em tempo de desenvolvimento. A opção `changeOrigin: true` é necessária para que o cabeçalho `Host` seja reescrito corretamente — sem ela, métodos como `PATCH` são rejeitados pelo Spring Boot com 403.
 
 ### Validação local antes da chamada HTTP
 
@@ -84,10 +84,17 @@ npx vitest run
 npx vitest
 ```
 
-A suíte cobre: funções de validação (unitários), camada `api/` com mock do Axios (unitários), e os componentes `TransferForm` e `TransferList` (componente com `@vue/test-utils`).
+A suíte cobre 57 casos distribuídos em 4 arquivos:
+
+- `transferValidation.spec.ts` — funções de validação (unitários)
+- `transferApi.spec.ts` — camada `api/` com mock do Axios (unitários), incluindo os endpoints de simulação, cancelamento e busca por ID
+- `TransferForm.spec.ts` — formulário de agendamento e simulação de taxa (componente)
+- `TransferList.spec.ts` — extrato com badges de status e botão de cancelamento (componente)
 
 ## Funcionalidades
 
-- **Agendar transferência** (`/`): formulário com validação local, exibe taxa calculada e data de agendamento após sucesso, e mensagens de erro da API em caso de falha.
-- **Extrato** (`/statement`): tabela com todos os agendamentos cadastrados, com botão de atualização manual.
+- **Agendar transferência** (`/`): formulário com validação local, exibe as contas mascaradas, o valor, a taxa calculada e a data de agendamento após sucesso, e mensagens de erro da API em caso de falha.
+- **Simular taxa** (`/`): botão no formulário que consulta `POST /transfers/simulate` e exibe a taxa estimada e o prazo em dias antes de confirmar o agendamento.
+- **Extrato** (`/statement`): tabela com todos os agendamentos cadastrados, exibindo status com badge colorido (Pendente, Executado, Cancelado) e botão de atualização manual.
+- **Cancelar agendamento**: botão "Cancelar" presente em todas as linhas do extrato — habilitado para agendamentos pendentes, desabilitado com tooltip explicativo para os demais.
 - **Dark mode**: alternância de tema claro/escuro persistida no `localStorage`.
