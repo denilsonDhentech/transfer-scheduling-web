@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { listTransfers, cancelTransfer } from '../api/transferApi'
-import { formatDate, formatCurrency, formatStatus } from '../utils/formatters'
+import { formatDate, formatCurrency, formatStatus, maskAccount } from '../utils/formatters'
 import type { TransferResponse, TransferStatus } from '../types/transfer'
 import ConfirmModal from './ConfirmModal.vue'
 
@@ -99,8 +99,8 @@ onMounted(fetchTransfers)
         <tbody>
           <tr v-for="transfer in transfers" :key="transfer.id">
             <td>{{ transfer.id }}</td>
-            <td>{{ transfer.sourceAccount }}</td>
-            <td>{{ transfer.destinationAccount }}</td>
+            <td>{{ maskAccount(transfer.sourceAccount) }}</td>
+            <td>{{ maskAccount(transfer.destinationAccount) }}</td>
             <td>{{ formatCurrency(transfer.amount) }}</td>
             <td>{{ formatCurrency(transfer.fee) }}</td>
             <td>{{ formatDate(transfer.transferDate) }}</td>
