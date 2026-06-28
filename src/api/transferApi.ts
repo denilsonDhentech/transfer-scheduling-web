@@ -24,3 +24,8 @@ export async function getTransferById(id: number): Promise<TransferResponse> {
   const response = await axios.get<TransferResponse>(`/transfers/${id}`)
   return response.data
 }
+
+export async function exportTransfers(): Promise<Blob> {
+  const response = await axios.get<Blob>('/transfers/export', { responseType: 'blob' })
+  return response.data
+}

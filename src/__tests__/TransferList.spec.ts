@@ -50,6 +50,8 @@ describe('TransferList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     clearToasts()
+    URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url')
+    URL.revokeObjectURL = vi.fn()
   })
 
   it('calls listTransfers on mount', async () => {
@@ -207,6 +209,54 @@ describe('TransferList', () => {
     await flushPromises()
 
     expect(transferApi.listTransfers).toHaveBeenCalledTimes(2)
+  })
+
+  describe('export button', () => {
+    it('is disabled when there are no transfers', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue([])
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const btn = wrapper.find('.export-btn')
+      expect((btn.element as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it('is enabled when there are transfers', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const btn = wrapper.find('.export-btn')
+      expect((btn.element as HTMLButtonElement).disabled).toBe(false)
+    })
+
+    it('calls exportTransfers and triggers download on click', async () => {
+      const blob = new Blob(['csv'], { type: 'text/csv' })
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      vi.mocked(transferApi.exportTransfers).mockResolvedValue(blob)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      await wrapper.find('.export-btn').trigger('click')
+      await flushPromises()
+
+      expect(transferApi.exportTransfers).toHaveBeenCalledOnce()
+      expect(URL.createObjectURL).toHaveBeenCalledWith(blob)
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+    })
+
+    it('shows error toast when export fails', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      vi.mocked(transferApi.exportTransfers).mockRejectedValue(new Error('Network Error'))
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      await wrapper.find('.export-btn').trigger('click')
+      await flushPromises()
+
+      expect(toasts.value[0].type).toBe('error')
+      expect(toasts.value[0].message).toContain('Erro ao exportar')
+    })
   })
 
   describe('cancel button', () => {

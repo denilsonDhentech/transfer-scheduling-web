@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { listTransfers, cancelTransfer } from '../api/transferApi'
+import { listTransfers, cancelTransfer, exportTransfers } from '../api/transferApi'
 import { formatDate, formatCurrency, formatStatus, maskAccount } from '../utils/formatters'
 import { showToast } from '../composables/useToast'
 import type { TransferResponse, TransferStatus } from '../types/transfer'
@@ -84,6 +84,20 @@ async function confirmCancel() {
   }
 }
 
+async function handleExport() {
+  try {
+    const blob = await exportTransfers()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'agendamentos.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    showToast('Erro ao exportar. Tente novamente.', 'error')
+  }
+}
+
 onMounted(fetchTransfers)
 </script>
 
@@ -91,9 +105,14 @@ onMounted(fetchTransfers)
   <div class="transfer-list">
     <div class="list-header">
       <h2>Extrato de Agendamentos</h2>
-      <button class="refresh-btn" :disabled="loading" @click="fetchTransfers">
-        {{ loading ? 'Carregando...' : 'Atualizar' }}
-      </button>
+      <div class="header-actions">
+        <button class="export-btn" :disabled="loading || transfers.length === 0" @click="handleExport">
+          Exportar CSV
+        </button>
+        <button class="refresh-btn" :disabled="loading" @click="fetchTransfers">
+          {{ loading ? 'Carregando...' : 'Atualizar' }}
+        </button>
+      </div>
     </div>
 
     <div v-if="fetchError" class="feedback error-box">{{ fetchError }}</div>
@@ -204,6 +223,31 @@ h2 {
   margin: 0;
   font-size: 1.25rem;
   color: var(--color-text-primary);
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.export-btn {
+  padding: 0.375rem 0.875rem;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.export-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .refresh-btn {
