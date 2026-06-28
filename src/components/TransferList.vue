@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { listTransfers, cancelTransfer } from '../api/transferApi'
 import { formatDate, formatCurrency, formatStatus, maskAccount } from '../utils/formatters'
+import { showToast } from '../composables/useToast'
 import type { TransferResponse, TransferStatus } from '../types/transfer'
 import ConfirmModal from './ConfirmModal.vue'
 
@@ -9,7 +10,6 @@ const transfers = ref<TransferResponse[]>([])
 const loading = ref(false)
 const fetchError = ref<string | null>(null)
 const cancelling = ref<number | null>(null)
-const cancelError = ref<string | null>(null)
 const pendingCancelId = ref<number | null>(null)
 
 async function fetchTransfers() {
@@ -40,20 +40,20 @@ async function confirmCancel() {
   if (pendingCancelId.value === null) return
   const id = pendingCancelId.value
   pendingCancelId.value = null
-  cancelError.value = null
   cancelling.value = id
   try {
     await cancelTransfer(id)
     await fetchTransfers()
+    showToast('Agendamento cancelado com sucesso.', 'success')
   } catch (err: unknown) {
     const axiosError = err as { response?: { data?: Record<string, string>; status?: number } }
     const status = axiosError.response?.data?.status ?? axiosError.response?.status
     if (status === 404) {
-      cancelError.value = 'Agendamento não encontrado.'
+      showToast('Agendamento não encontrado.', 'error')
     } else if (status === 422) {
-      cancelError.value = 'Este agendamento não pode ser cancelado.'
+      showToast('Este agendamento não pode ser cancelado.', 'error')
     } else {
-      cancelError.value = axiosError.response?.data?.error ?? 'Erro ao cancelar. Tente novamente.'
+      showToast(axiosError.response?.data?.error ?? 'Erro ao cancelar. Tente novamente.', 'error')
     }
   } finally {
     cancelling.value = null
@@ -73,7 +73,6 @@ onMounted(fetchTransfers)
     </div>
 
     <div v-if="fetchError" class="feedback error-box">{{ fetchError }}</div>
-    <div v-if="cancelError" class="feedback error-box">{{ cancelError }}</div>
 
     <div v-if="loading" class="feedback info-box">Carregando agendamentos...</div>
 
