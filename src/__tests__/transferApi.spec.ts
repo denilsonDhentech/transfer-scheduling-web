@@ -5,6 +5,7 @@ import {
   listTransfers,
   simulateTransfer,
   cancelTransfer,
+  editTransfer,
   getTransferById,
   exportTransfers,
 } from '../api/transferApi'
@@ -120,6 +121,25 @@ describe('cancelTransfer', () => {
     mockedAxios.patch.mockRejectedValue(apiError)
 
     await expect(cancelTransfer(1)).rejects.toThrow(apiError)
+  })
+})
+
+describe('editTransfer', () => {
+  it('patches /transfers/:id with the edit data and returns the updated transfer', async () => {
+    const updated = { ...mockTransferResponse, amount: 2000, fee: 12 }
+    mockedAxios.patch.mockResolvedValue({ data: updated })
+
+    const result = await editTransfer(1, { amount: 2000, transferDate: '2026-07-15' })
+
+    expect(mockedAxios.patch).toHaveBeenCalledWith('/transfers/1', { amount: 2000, transferDate: '2026-07-15' })
+    expect(result).toEqual(updated)
+  })
+
+  it('propagates the error when the edit API returns a failure', async () => {
+    const apiError = new Error('Request failed with status code 422')
+    mockedAxios.patch.mockRejectedValue(apiError)
+
+    await expect(editTransfer(1, { amount: 2000 })).rejects.toThrow(apiError)
   })
 })
 

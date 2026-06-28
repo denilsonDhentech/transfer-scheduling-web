@@ -51,9 +51,18 @@ const confirmModalStub = {
   emits: ['confirm', 'dismiss'],
 }
 
+const editModalStub = {
+  template: `<div v-if="open">
+    <button class="edit-modal-save" @click="$emit('saved', transfer)">Salvar</button>
+    <button class="edit-modal-dismiss" @click="$emit('dismiss')">Cancelar</button>
+  </div>`,
+  props: ['open', 'transfer'],
+  emits: ['saved', 'dismiss'],
+}
+
 function mountWithModal() {
   return mount(TransferList, {
-    global: { stubs: { ConfirmModal: confirmModalStub } },
+    global: { stubs: { ConfirmModal: confirmModalStub, EditTransferModal: editModalStub } },
   })
 }
 
@@ -352,6 +361,71 @@ describe('TransferList', () => {
       expect(transferApi.listTransfers).toHaveBeenLastCalledWith(
         expect.objectContaining({ page: 1 }),
       )
+    })
+  })
+
+  describe('edit button', () => {
+    it('renders edit button on every row', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(pagedResult(mockTransfers))
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const rows = wrapper.findAll('tbody tr')
+      expect(rows[0].find('.edit-btn').exists()).toBe(true)
+      expect(rows[1].find('.edit-btn').exists()).toBe(true)
+    })
+
+    it('enables edit button only for PENDING rows', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(pagedResult(mockTransfers))
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const rows = wrapper.findAll('tbody tr')
+      expect((rows[0].find('.edit-btn').element as HTMLButtonElement).disabled).toBe(false)
+      expect((rows[1].find('.edit-btn').element as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it('shows tooltip on disabled edit button for non-PENDING rows', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(pagedResult(mockTransfers))
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const rows = wrapper.findAll('tbody tr')
+      expect(rows[1].find('.edit-btn').attributes('title')).toContain('pendentes')
+    })
+
+    it('opens edit modal when edit button is clicked on a PENDING row', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(pagedResult(mockTransfers))
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      await wrapper.find('.edit-btn').trigger('click')
+
+      expect(wrapper.find('.edit-modal-save').exists()).toBe(true)
+    })
+
+    it('reloads the list when edit modal emits saved', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(pagedResult(mockTransfers))
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      await wrapper.find('.edit-btn').trigger('click')
+      await wrapper.find('.edit-modal-save').trigger('click')
+      await flushPromises()
+
+      expect(transferApi.listTransfers).toHaveBeenCalledTimes(2)
+    })
+
+    it('closes edit modal when dismiss is emitted', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(pagedResult(mockTransfers))
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      await wrapper.find('.edit-btn').trigger('click')
+      await wrapper.find('.edit-modal-dismiss').trigger('click')
+      await nextTick()
+
+      expect(wrapper.find('.edit-modal-save').exists()).toBe(false)
     })
   })
 
