@@ -31,6 +31,11 @@ export interface PagedResponse<T> {
   totalPages: number
 }
 
+export interface TransferEditRequest {
+  amount?: number
+  transferDate?: string
+}
+
 export interface TransferFilters {
   status?: TransferStatus | ''
   from?: string

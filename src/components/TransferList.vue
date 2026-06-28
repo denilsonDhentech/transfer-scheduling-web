@@ -5,6 +5,7 @@ import { formatDate, formatCurrency, formatStatus, maskAccount } from '../utils/
 import { showToast } from '../composables/useToast'
 import type { TransferResponse, TransferStatus, TransferFilters } from '../types/transfer'
 import ConfirmModal from './ConfirmModal.vue'
+import EditTransferModal from './EditTransferModal.vue'
 
 type SortKey = keyof TransferResponse
 type SortDir = 'asc' | 'desc'
@@ -16,6 +17,7 @@ const loading = ref(false)
 const fetchError = ref<string | null>(null)
 const cancelling = ref<number | null>(null)
 const pendingCancelId = ref<number | null>(null)
+const pendingEditTransfer = ref<TransferResponse | null>(null)
 const sortKey = ref<SortKey>('transferDate')
 const sortDir = ref<SortDir>('asc')
 const page = ref(0)
@@ -105,6 +107,15 @@ function toggleSort(key: SortKey) {
 
 function statusClass(status: TransferStatus): string {
   return `status-${status.toLowerCase()}`
+}
+
+function handleEdit(transfer: TransferResponse) {
+  pendingEditTransfer.value = transfer
+}
+
+async function handleEditSaved() {
+  pendingEditTransfer.value = null
+  await fetchTransfers()
 }
 
 function handleCancel(id: number) {
@@ -272,7 +283,15 @@ onMounted(fetchTransfers)
                 {{ formatStatus(transfer.status) }}
               </span>
             </td>
-            <td>
+            <td class="actions-cell">
+              <button
+                class="edit-btn"
+                :disabled="transfer.status !== 'PENDING'"
+                :title="transfer.status !== 'PENDING' ? 'Somente agendamentos pendentes podem ser editados' : ''"
+                @click="transfer.status === 'PENDING' && handleEdit(transfer)"
+              >
+                Editar
+              </button>
               <button
                 class="cancel-btn"
                 :disabled="transfer.status !== 'PENDING' || cancelling === transfer.id"
@@ -300,6 +319,13 @@ onMounted(fetchTransfers)
     message="Esta ação não pode ser desfeita. Deseja confirmar o cancelamento?"
     @confirm="confirmCancel"
     @dismiss="dismissModal"
+  />
+
+  <EditTransferModal
+    :open="pendingEditTransfer !== null"
+    :transfer="pendingEditTransfer"
+    @saved="handleEditSaved"
+    @dismiss="pendingEditTransfer = null"
   />
 </template>
 
@@ -564,6 +590,34 @@ tbody tr:hover {
 .status-cancelled {
   background: var(--badge-cancelled-bg);
   color: var(--badge-cancelled-text);
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.edit-btn {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: transparent;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.edit-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.edit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .cancel-btn {
