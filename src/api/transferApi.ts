@@ -1,13 +1,13 @@
 import axios from 'axios'
-import type { TransferRequest, TransferResponse, FeeSimulationResponse } from '../types/transfer'
+import type { TransferRequest, TransferResponse, FeeSimulationResponse, PagedResponse, TransferFilters } from '../types/transfer'
 
 export async function scheduleTransfer(data: TransferRequest): Promise<TransferResponse> {
   const response = await axios.post<TransferResponse>('/transfers', data)
   return response.data
 }
 
-export async function listTransfers(): Promise<TransferResponse[]> {
-  const response = await axios.get<TransferResponse[]>('/transfers')
+export async function listTransfers(filters?: TransferFilters): Promise<PagedResponse<TransferResponse>> {
+  const response = await axios.get<PagedResponse<TransferResponse>>('/transfers', { params: filters })
   return response.data
 }
 

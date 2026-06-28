@@ -22,3 +22,21 @@ export interface FeeSimulationResponse {
   fee: number
   days: number
 }
+
+export interface PagedResponse<T> {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+export interface TransferFilters {
+  status?: TransferStatus | ''
+  from?: string
+  to?: string
+  sourceAccount?: string
+  destinationAccount?: string
+  page?: number
+  size?: number
+}
