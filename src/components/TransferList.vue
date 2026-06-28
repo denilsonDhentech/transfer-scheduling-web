@@ -3,12 +3,14 @@ import { ref, onMounted } from 'vue'
 import { listTransfers, cancelTransfer } from '../api/transferApi'
 import { formatDate, formatCurrency, formatStatus } from '../utils/formatters'
 import type { TransferResponse, TransferStatus } from '../types/transfer'
+import ConfirmModal from './ConfirmModal.vue'
 
 const transfers = ref<TransferResponse[]>([])
 const loading = ref(false)
 const fetchError = ref<string | null>(null)
 const cancelling = ref<number | null>(null)
 const cancelError = ref<string | null>(null)
+const pendingCancelId = ref<number | null>(null)
 
 async function fetchTransfers() {
   loading.value = true
@@ -26,7 +28,18 @@ function statusClass(status: TransferStatus): string {
   return `status-${status.toLowerCase()}`
 }
 
-async function handleCancel(id: number) {
+function handleCancel(id: number) {
+  pendingCancelId.value = id
+}
+
+function dismissModal() {
+  pendingCancelId.value = null
+}
+
+async function confirmCancel() {
+  if (pendingCancelId.value === null) return
+  const id = pendingCancelId.value
+  pendingCancelId.value = null
   cancelError.value = null
   cancelling.value = id
   try {
@@ -112,6 +125,14 @@ onMounted(fetchTransfers)
       </table>
     </div>
   </div>
+
+  <ConfirmModal
+    :open="pendingCancelId !== null"
+    title="Cancelar agendamento"
+    message="Esta ação não pode ser desfeita. Deseja confirmar o cancelamento?"
+    @confirm="confirmCancel"
+    @dismiss="dismissModal"
+  />
 </template>
 
 <style scoped>
