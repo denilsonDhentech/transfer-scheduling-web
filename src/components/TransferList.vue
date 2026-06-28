@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { listTransfers, cancelTransfer, exportTransfers } from '../api/transferApi'
 import { formatDate, formatCurrency, formatStatus, maskAccount } from '../utils/formatters'
 import { showToast } from '../composables/useToast'
-import type { TransferResponse, TransferStatus } from '../types/transfer'
+import type { TransferResponse, TransferStatus, TransferFilters } from '../types/transfer'
 import ConfirmModal from './ConfirmModal.vue'
 
 type SortKey = keyof TransferResponse
 type SortDir = 'asc' | 'desc'
+
+const PAGE_SIZE = 10
 
 const transfers = ref<TransferResponse[]>([])
 const loading = ref(false)
@@ -16,6 +18,26 @@ const cancelling = ref<number | null>(null)
 const pendingCancelId = ref<number | null>(null)
 const sortKey = ref<SortKey>('transferDate')
 const sortDir = ref<SortDir>('asc')
+const page = ref(0)
+const totalPages = ref(0)
+const totalElements = ref(0)
+
+const filters = reactive({
+  status: '' as TransferStatus | '',
+  from: '',
+  to: '',
+  sourceAccount: '',
+  destinationAccount: '',
+})
+
+const hasActiveFilters = computed(
+  () =>
+    filters.status !== '' ||
+    filters.from !== '' ||
+    filters.to !== '' ||
+    filters.sourceAccount !== '' ||
+    filters.destinationAccount !== '',
+)
 
 const sortedTransfers = computed(() => {
   return [...transfers.value].sort((a, b) => {
@@ -27,24 +49,57 @@ const sortedTransfers = computed(() => {
   })
 })
 
-function toggleSort(key: SortKey) {
-  if (sortKey.value === key) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortKey.value = key
-    sortDir.value = 'asc'
-  }
+function buildParams(): TransferFilters {
+  const params: TransferFilters = { page: page.value, size: PAGE_SIZE }
+  if (filters.status) params.status = filters.status
+  if (filters.from) params.from = filters.from
+  if (filters.to) params.to = filters.to
+  if (filters.sourceAccount) params.sourceAccount = filters.sourceAccount
+  if (filters.destinationAccount) params.destinationAccount = filters.destinationAccount
+  return params
 }
 
 async function fetchTransfers() {
   loading.value = true
   fetchError.value = null
   try {
-    transfers.value = await listTransfers()
+    const result = await listTransfers(buildParams())
+    transfers.value = result.content
+    totalPages.value = result.totalPages
+    totalElements.value = result.totalElements
   } catch {
     fetchError.value = 'Não foi possível carregar os agendamentos. Tente novamente.'
   } finally {
     loading.value = false
+  }
+}
+
+function applyFilters() {
+  page.value = 0
+  fetchTransfers()
+}
+
+function clearFilters() {
+  filters.status = ''
+  filters.from = ''
+  filters.to = ''
+  filters.sourceAccount = ''
+  filters.destinationAccount = ''
+  page.value = 0
+  fetchTransfers()
+}
+
+function goToPage(target: number) {
+  page.value = target
+  fetchTransfers()
+}
+
+function toggleSort(key: SortKey) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'asc'
   }
 }
 
@@ -111,6 +166,42 @@ onMounted(fetchTransfers)
         </button>
         <button class="refresh-btn" :disabled="loading" @click="fetchTransfers">
           {{ loading ? 'Carregando...' : 'Atualizar' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-panel">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label>Status</label>
+          <select v-model="filters.status">
+            <option value="">Todos</option>
+            <option value="PENDING">Pendente</option>
+            <option value="EXECUTED">Executado</option>
+            <option value="CANCELLED">Cancelado</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>De</label>
+          <input type="date" v-model="filters.from" />
+        </div>
+        <div class="filter-field">
+          <label>Até</label>
+          <input type="date" v-model="filters.to" />
+        </div>
+        <div class="filter-field">
+          <label>Conta Origem</label>
+          <input type="text" v-model="filters.sourceAccount" maxlength="10" placeholder="0000000000" />
+        </div>
+        <div class="filter-field">
+          <label>Conta Destino</label>
+          <input type="text" v-model="filters.destinationAccount" maxlength="10" placeholder="0000000000" />
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn-filter" :disabled="loading" @click="applyFilters">Filtrar</button>
+        <button class="btn-clear" :disabled="!hasActiveFilters || loading" @click="clearFilters">
+          Limpar filtros
         </button>
       </div>
     </div>
@@ -195,6 +286,12 @@ onMounted(fetchTransfers)
         </tbody>
       </table>
     </div>
+
+    <div v-if="!loading && !fetchError && totalPages > 1" class="pagination">
+      <button class="page-btn" :disabled="page === 0" @click="goToPage(page - 1)">Anterior</button>
+      <span class="page-info">Página {{ page + 1 }} de {{ totalPages }} ({{ totalElements }} registros)</span>
+      <button class="page-btn" :disabled="page >= totalPages - 1" @click="goToPage(page + 1)">Próxima</button>
+    </div>
   </div>
 
   <ConfirmModal
@@ -267,6 +364,100 @@ h2 {
 
 .refresh-btn:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 140px;
+}
+
+.filter-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.filter-field input,
+.filter-field select {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+  border-color: #3b82f6;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-filter {
+  padding: 0.375rem 1rem;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-filter:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-filter:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-clear {
+  padding: 0.375rem 1rem;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-clear:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.btn-clear:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -397,6 +588,40 @@ tbody tr:hover {
   cursor: not-allowed;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.page-btn {
+  padding: 0.375rem 0.875rem;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
 .skeleton-row td {
   padding: 0.75rem 0.875rem;
   border-bottom: 1px solid var(--color-border-light);
@@ -415,9 +640,9 @@ tbody tr:hover {
   animation: shimmer 1.4s infinite;
 }
 
-.skeleton-bar--xs  { width: 24px; }
-.skeleton-bar--sm  { width: 72px; }
-.skeleton-bar--md  { width: 96px; }
+.skeleton-bar--xs    { width: 24px; }
+.skeleton-bar--sm    { width: 72px; }
+.skeleton-bar--md    { width: 96px; }
 .skeleton-bar--badge { width: 56px; height: 1rem; border-radius: 12px; }
 
 @keyframes shimmer {

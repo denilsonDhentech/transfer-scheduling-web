@@ -8,7 +8,7 @@ import {
   getTransferById,
   exportTransfers,
 } from '../api/transferApi'
-import type { TransferRequest, TransferResponse, FeeSimulationResponse } from '../types/transfer'
+import type { TransferRequest, TransferResponse, FeeSimulationResponse, PagedResponse } from '../types/transfer'
 
 vi.mock('axios')
 const mockedAxios = vi.mocked(axios)
@@ -54,21 +54,29 @@ describe('scheduleTransfer', () => {
 })
 
 describe('listTransfers', () => {
-  it('gets /transfers and returns the response data', async () => {
-    mockedAxios.get.mockResolvedValue({ data: [mockTransferResponse] })
+  const mockPaged: PagedResponse<TransferResponse> = {
+    content: [mockTransferResponse],
+    page: 0,
+    size: 10,
+    totalElements: 1,
+    totalPages: 1,
+  }
 
-    const result = await listTransfers()
+  it('gets /transfers with params and returns the paged response', async () => {
+    mockedAxios.get.mockResolvedValue({ data: mockPaged })
 
-    expect(mockedAxios.get).toHaveBeenCalledWith('/transfers')
-    expect(result).toEqual([mockTransferResponse])
+    const result = await listTransfers({ status: 'PENDING', page: 0, size: 10 })
+
+    expect(mockedAxios.get).toHaveBeenCalledWith('/transfers', { params: { status: 'PENDING', page: 0, size: 10 } })
+    expect(result).toEqual(mockPaged)
   })
 
-  it('returns an empty array when there are no transfers', async () => {
-    mockedAxios.get.mockResolvedValue({ data: [] })
+  it('gets /transfers without params when filters are omitted', async () => {
+    mockedAxios.get.mockResolvedValue({ data: mockPaged })
 
-    const result = await listTransfers()
+    await listTransfers()
 
-    expect(result).toEqual([])
+    expect(mockedAxios.get).toHaveBeenCalledWith('/transfers', { params: undefined })
   })
 
   it('propagates the error when the API returns a failure', async () => {
