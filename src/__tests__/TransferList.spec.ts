@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import TransferList from '../components/TransferList.vue'
 import * as transferApi from '../api/transferApi'
 import { toasts, clearToasts } from '../composables/useToast'
@@ -57,6 +58,15 @@ describe('TransferList', () => {
     await flushPromises()
 
     expect(transferApi.listTransfers).toHaveBeenCalledOnce()
+  })
+
+  it('shows skeleton rows while loading', async () => {
+    vi.mocked(transferApi.listTransfers).mockReturnValue(new Promise(() => {}))
+    const wrapper = mountWithModal()
+    await nextTick()
+
+    expect(wrapper.findAll('.skeleton-row')).toHaveLength(5)
+    expect(wrapper.find('table').exists()).toBe(true)
   })
 
   it('renders a row for each transfer returned by the API', async () => {

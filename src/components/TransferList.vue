@@ -74,7 +74,36 @@ onMounted(fetchTransfers)
 
     <div v-if="fetchError" class="feedback error-box">{{ fetchError }}</div>
 
-    <div v-if="loading" class="feedback info-box">Carregando agendamentos...</div>
+    <div v-if="loading" class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Conta Origem</th>
+            <th>Conta Destino</th>
+            <th>Valor</th>
+            <th>Taxa</th>
+            <th>Data Transferência</th>
+            <th>Data Agendamento</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="n in 5" :key="n" class="skeleton-row">
+            <td><div class="skeleton-bar skeleton-bar--xs"></div></td>
+            <td><div class="skeleton-bar skeleton-bar--md"></div></td>
+            <td><div class="skeleton-bar skeleton-bar--md"></div></td>
+            <td><div class="skeleton-bar skeleton-bar--sm"></div></td>
+            <td><div class="skeleton-bar skeleton-bar--sm"></div></td>
+            <td><div class="skeleton-bar skeleton-bar--sm"></div></td>
+            <td><div class="skeleton-bar skeleton-bar--sm"></div></td>
+            <td><div class="skeleton-bar skeleton-bar--badge"></div></td>
+            <td><div class="skeleton-bar skeleton-bar--sm"></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <div v-else-if="!fetchError && transfers.length === 0" class="feedback info-box">
       Nenhum agendamento encontrado.
@@ -269,5 +298,33 @@ tbody tr:hover {
 .cancel-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.skeleton-row td {
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.skeleton-bar {
+  height: 0.75rem;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-subtle) 25%,
+    var(--color-surface-hover) 50%,
+    var(--color-surface-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.skeleton-bar--xs  { width: 24px; }
+.skeleton-bar--sm  { width: 72px; }
+.skeleton-bar--md  { width: 96px; }
+.skeleton-bar--badge { width: 56px; height: 1rem; border-radius: 12px; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 </style>
