@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import { scheduleTransfer, simulateTransfer } from '../api/transferApi'
 import { validateTransferForm, hasErrors } from '../utils/transferValidation'
 import { formatDate, formatCurrency, maskAccount } from '../utils/formatters'
+import { showToast } from '../composables/useToast'
 import type { TransferResponse, FeeSimulationResponse } from '../types/transfer'
 import type { FormErrors } from '../utils/transferValidation'
 
@@ -27,8 +28,6 @@ const loading = ref(false)
 const simulationLoading = ref(false)
 const successResult = ref<TransferResponse | null>(null)
 const simulationResult = ref<FeeSimulationResponse | null>(null)
-const apiError = ref<string | null>(null)
-const simulationError = ref<string | null>(null)
 
 function onAmountInput(event: Event) {
   const value = parseFloat((event.target as HTMLInputElement).value)
@@ -46,7 +45,6 @@ function buildRequest() {
 
 async function handleSimulate() {
   simulationResult.value = null
-  simulationError.value = null
   errors.value = validateTransferForm(form)
 
   if (hasErrors(errors.value)) return
@@ -57,7 +55,7 @@ async function handleSimulate() {
   } catch (err: unknown) {
     const axiosError = err as { response?: { data?: Record<string, string> } }
     const data = axiosError.response?.data
-    simulationError.value = data?.error ?? 'Erro ao simular. Tente novamente.'
+    showToast(data?.error ?? 'Erro ao simular. Tente novamente.', 'error')
   } finally {
     simulationLoading.value = false
   }
@@ -66,8 +64,6 @@ async function handleSimulate() {
 async function handleSubmit() {
   successResult.value = null
   simulationResult.value = null
-  apiError.value = null
-  simulationError.value = null
   errors.value = validateTransferForm(form)
 
   if (hasErrors(errors.value)) return
@@ -80,11 +76,11 @@ async function handleSubmit() {
     const data = axiosError.response?.data
 
     if (data?.error) {
-      apiError.value = data.error
+      showToast(data.error, 'error')
     } else if (data) {
-      apiError.value = Object.values(data).join(' ')
+      showToast(Object.values(data).join(' '), 'error')
     } else {
-      apiError.value = 'Erro inesperado. Tente novamente.'
+      showToast('Erro inesperado. Tente novamente.', 'error')
     }
   } finally {
     loading.value = false
@@ -143,15 +139,11 @@ async function handleSubmit() {
       <span v-if="errors.transferDate" class="field-error">{{ errors.transferDate }}</span>
     </div>
 
-    <div v-if="simulationError" class="feedback error-box">{{ simulationError }}</div>
-
     <div v-if="simulationResult" class="feedback simulation-box">
       <p class="simulation-title">Simulação de taxa</p>
       <p>Taxa estimada: <strong>{{ formatCurrency(simulationResult.fee) }}</strong></p>
       <p>Prazo: <strong>{{ simulationResult.days }} {{ simulationResult.days === 1 ? 'dia' : 'dias' }}</strong></p>
     </div>
-
-    <div v-if="apiError" class="feedback error-box">{{ apiError }}</div>
 
     <div v-if="successResult" class="feedback success-box">
       <p class="success-title">Transferência agendada com sucesso!</p>

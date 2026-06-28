@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import ToastNotification from './components/ToastNotification.vue'
 
 const isDark = ref(false)
 
@@ -34,6 +35,8 @@ onMounted(() => {
   <main class="app-main">
     <RouterView />
   </main>
+
+  <ToastNotification />
 </template>
 
 <style>

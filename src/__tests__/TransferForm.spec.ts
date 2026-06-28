@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import TransferForm from '../components/TransferForm.vue'
 import * as transferApi from '../api/transferApi'
+import { toasts, clearToasts } from '../composables/useToast'
 import type { TransferResponse, FeeSimulationResponse } from '../types/transfer'
 
 vi.mock('../api/transferApi')
@@ -33,7 +34,10 @@ async function fillValidForm(wrapper: ReturnType<typeof mount>) {
 }
 
 describe('TransferForm', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    clearToasts()
+  })
 
   it('renders all form fields', () => {
     const wrapper = mount(TransferForm)
@@ -95,7 +99,7 @@ describe('TransferForm', () => {
     expect(text).toContain('27,50')
   })
 
-  it('shows API error message when the request fails', async () => {
+  it('shows error toast when the API request fails', async () => {
     const err = { response: { data: { error: 'Não há taxa aplicável para esta data.' } } }
     vi.mocked(transferApi.scheduleTransfer).mockRejectedValue(err)
     const wrapper = mount(TransferForm)
@@ -103,17 +107,19 @@ describe('TransferForm', () => {
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Não há taxa aplicável para esta data.')
+    expect(toasts.value[0].type).toBe('error')
+    expect(toasts.value[0].message).toContain('Não há taxa aplicável para esta data.')
   })
 
-  it('shows fallback error message when response has no error body', async () => {
+  it('shows fallback error toast when response has no error body', async () => {
     vi.mocked(transferApi.scheduleTransfer).mockRejectedValue(new Error('Network Error'))
     const wrapper = mount(TransferForm)
     await fillValidForm(wrapper)
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Erro inesperado')
+    expect(toasts.value[0].type).toBe('error')
+    expect(toasts.value[0].message).toContain('Erro inesperado')
   })
 
   describe('simulate button', () => {
@@ -159,7 +165,7 @@ describe('TransferForm', () => {
       expect(text).toContain('1 dia')
     })
 
-    it('shows simulation error when the API fails', async () => {
+    it('shows error toast when simulation API fails', async () => {
       const err = { response: { data: { error: 'Data sem taxa aplicável.' } } }
       vi.mocked(transferApi.simulateTransfer).mockRejectedValue(err)
       const wrapper = mount(TransferForm)
@@ -167,17 +173,19 @@ describe('TransferForm', () => {
       await wrapper.find('.btn-secondary').trigger('click')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('Data sem taxa aplicável.')
+      expect(toasts.value[0].type).toBe('error')
+      expect(toasts.value[0].message).toContain('Data sem taxa aplicável.')
     })
 
-    it('shows fallback simulation error when response has no error body', async () => {
+    it('shows fallback error toast when simulation response has no error body', async () => {
       vi.mocked(transferApi.simulateTransfer).mockRejectedValue(new Error('Network Error'))
       const wrapper = mount(TransferForm)
       await fillValidForm(wrapper)
       await wrapper.find('.btn-secondary').trigger('click')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('Erro ao simular')
+      expect(toasts.value[0].type).toBe('error')
+      expect(toasts.value[0].message).toContain('Erro ao simular')
     })
   })
 })

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import TransferList from '../components/TransferList.vue'
 import * as transferApi from '../api/transferApi'
+import { toasts, clearToasts } from '../composables/useToast'
 import type { TransferResponse } from '../types/transfer'
 
 vi.mock('../api/transferApi')
@@ -45,7 +46,10 @@ function mountWithModal() {
 }
 
 describe('TransferList', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    clearToasts()
+  })
 
   it('calls listTransfers on mount', async () => {
     vi.mocked(transferApi.listTransfers).mockResolvedValue([])
@@ -183,7 +187,7 @@ describe('TransferList', () => {
       expect(transferApi.cancelTransfer).toHaveBeenCalledWith(1)
     })
 
-    it('refreshes the list after a successful cancellation', async () => {
+    it('refreshes the list and shows success toast after cancellation', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
       vi.mocked(transferApi.cancelTransfer).mockResolvedValue(undefined)
       const wrapper = mountWithModal()
@@ -194,9 +198,11 @@ describe('TransferList', () => {
       await flushPromises()
 
       expect(transferApi.listTransfers).toHaveBeenCalledTimes(2)
+      expect(toasts.value[0].type).toBe('success')
+      expect(toasts.value[0].message).toContain('cancelado com sucesso')
     })
 
-    it('shows error message when cancellation returns 404', async () => {
+    it('shows error toast when cancellation returns 404', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
       vi.mocked(transferApi.cancelTransfer).mockRejectedValue({ response: { status: 404 } })
       const wrapper = mountWithModal()
@@ -206,10 +212,11 @@ describe('TransferList', () => {
       await wrapper.find('.modal-confirm').trigger('click')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('Agendamento não encontrado')
+      expect(toasts.value[0].type).toBe('error')
+      expect(toasts.value[0].message).toContain('Agendamento não encontrado')
     })
 
-    it('shows error message when cancellation returns 422', async () => {
+    it('shows error toast when cancellation returns 422', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
       vi.mocked(transferApi.cancelTransfer).mockRejectedValue({ response: { status: 422 } })
       const wrapper = mountWithModal()
@@ -219,10 +226,11 @@ describe('TransferList', () => {
       await wrapper.find('.modal-confirm').trigger('click')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('não pode ser cancelado')
+      expect(toasts.value[0].type).toBe('error')
+      expect(toasts.value[0].message).toContain('não pode ser cancelado')
     })
 
-    it('shows fallback error message on unexpected cancellation failure', async () => {
+    it('shows fallback error toast on unexpected cancellation failure', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
       vi.mocked(transferApi.cancelTransfer).mockRejectedValue(new Error('Network Error'))
       const wrapper = mountWithModal()
@@ -232,7 +240,8 @@ describe('TransferList', () => {
       await wrapper.find('.modal-confirm').trigger('click')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('Erro ao cancelar')
+      expect(toasts.value[0].type).toBe('error')
+      expect(toasts.value[0].message).toContain('Erro ao cancelar')
     })
   })
 })
