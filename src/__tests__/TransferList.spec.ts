@@ -29,12 +29,27 @@ const mockTransfers: TransferResponse[] = [
   },
 ]
 
+const confirmModalStub = {
+  template: `<div v-if="open">
+    <button class="modal-confirm" @click="$emit('confirm')">Confirmar</button>
+    <button class="modal-dismiss" @click="$emit('dismiss')">Voltar</button>
+  </div>`,
+  props: ['open', 'title', 'message'],
+  emits: ['confirm', 'dismiss'],
+}
+
+function mountWithModal() {
+  return mount(TransferList, {
+    global: { stubs: { ConfirmModal: confirmModalStub } },
+  })
+}
+
 describe('TransferList', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('calls listTransfers on mount', async () => {
     vi.mocked(transferApi.listTransfers).mockResolvedValue([])
-    mount(TransferList)
+    mount(TransferList, { global: { stubs: { ConfirmModal: true } } })
     await flushPromises()
 
     expect(transferApi.listTransfers).toHaveBeenCalledOnce()
@@ -42,7 +57,7 @@ describe('TransferList', () => {
 
   it('renders a row for each transfer returned by the API', async () => {
     vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
-    const wrapper = mount(TransferList)
+    const wrapper = mountWithModal()
     await flushPromises()
 
     const rows = wrapper.findAll('tbody tr')
@@ -51,7 +66,7 @@ describe('TransferList', () => {
 
   it('displays all column values for a transfer', async () => {
     vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
-    const wrapper = mount(TransferList)
+    const wrapper = mountWithModal()
     await flushPromises()
 
     const firstRow = wrapper.findAll('tbody tr')[0].text()
@@ -65,7 +80,7 @@ describe('TransferList', () => {
 
   it('renders status badge with correct label for each status', async () => {
     vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
-    const wrapper = mount(TransferList)
+    const wrapper = mountWithModal()
     await flushPromises()
 
     const rows = wrapper.findAll('tbody tr')
@@ -75,7 +90,7 @@ describe('TransferList', () => {
 
   it('shows empty state message when there are no transfers', async () => {
     vi.mocked(transferApi.listTransfers).mockResolvedValue([])
-    const wrapper = mount(TransferList)
+    const wrapper = mountWithModal()
     await flushPromises()
 
     expect(wrapper.text()).toContain('Nenhum agendamento encontrado')
@@ -84,7 +99,7 @@ describe('TransferList', () => {
 
   it('shows error message when the API call fails', async () => {
     vi.mocked(transferApi.listTransfers).mockRejectedValue(new Error('Network Error'))
-    const wrapper = mount(TransferList)
+    const wrapper = mountWithModal()
     await flushPromises()
 
     expect(wrapper.text()).toContain('Não foi possível carregar')
@@ -93,7 +108,7 @@ describe('TransferList', () => {
 
   it('reloads data when the refresh button is clicked', async () => {
     vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
-    const wrapper = mount(TransferList)
+    const wrapper = mountWithModal()
     await flushPromises()
 
     await wrapper.find('.refresh-btn').trigger('click')
@@ -105,7 +120,7 @@ describe('TransferList', () => {
   describe('cancel button', () => {
     it('renders cancel button on every row', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
-      const wrapper = mount(TransferList)
+      const wrapper = mountWithModal()
       await flushPromises()
 
       const rows = wrapper.findAll('tbody tr')
@@ -115,7 +130,7 @@ describe('TransferList', () => {
 
     it('enables cancel button only for PENDING rows', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
-      const wrapper = mount(TransferList)
+      const wrapper = mountWithModal()
       await flushPromises()
 
       const rows = wrapper.findAll('tbody tr')
@@ -125,20 +140,44 @@ describe('TransferList', () => {
 
     it('shows tooltip on disabled cancel button for non-PENDING rows', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
-      const wrapper = mount(TransferList)
+      const wrapper = mountWithModal()
       await flushPromises()
 
       const rows = wrapper.findAll('tbody tr')
       expect(rows[1].find('.cancel-btn').attributes('title')).toContain('pendentes')
     })
 
-    it('calls cancelTransfer with the correct id when clicked', async () => {
+    it('opens confirmation modal when cancel button is clicked', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
-      vi.mocked(transferApi.cancelTransfer).mockResolvedValue(undefined)
-      const wrapper = mount(TransferList)
+      const wrapper = mountWithModal()
       await flushPromises()
 
       await wrapper.find('.cancel-btn').trigger('click')
+
+      expect(wrapper.find('.modal-confirm').exists()).toBe(true)
+      expect(transferApi.cancelTransfer).not.toHaveBeenCalled()
+    })
+
+    it('does not call cancelTransfer when modal is dismissed', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      await wrapper.find('.cancel-btn').trigger('click')
+      await wrapper.find('.modal-dismiss').trigger('click')
+      await flushPromises()
+
+      expect(transferApi.cancelTransfer).not.toHaveBeenCalled()
+    })
+
+    it('calls cancelTransfer with the correct id when modal is confirmed', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      vi.mocked(transferApi.cancelTransfer).mockResolvedValue(undefined)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      await wrapper.find('.cancel-btn').trigger('click')
+      await wrapper.find('.modal-confirm').trigger('click')
       await flushPromises()
 
       expect(transferApi.cancelTransfer).toHaveBeenCalledWith(1)
@@ -147,10 +186,11 @@ describe('TransferList', () => {
     it('refreshes the list after a successful cancellation', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
       vi.mocked(transferApi.cancelTransfer).mockResolvedValue(undefined)
-      const wrapper = mount(TransferList)
+      const wrapper = mountWithModal()
       await flushPromises()
 
       await wrapper.find('.cancel-btn').trigger('click')
+      await wrapper.find('.modal-confirm').trigger('click')
       await flushPromises()
 
       expect(transferApi.listTransfers).toHaveBeenCalledTimes(2)
@@ -159,10 +199,11 @@ describe('TransferList', () => {
     it('shows error message when cancellation returns 404', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
       vi.mocked(transferApi.cancelTransfer).mockRejectedValue({ response: { status: 404 } })
-      const wrapper = mount(TransferList)
+      const wrapper = mountWithModal()
       await flushPromises()
 
       await wrapper.find('.cancel-btn').trigger('click')
+      await wrapper.find('.modal-confirm').trigger('click')
       await flushPromises()
 
       expect(wrapper.text()).toContain('Agendamento não encontrado')
@@ -171,10 +212,11 @@ describe('TransferList', () => {
     it('shows error message when cancellation returns 422', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
       vi.mocked(transferApi.cancelTransfer).mockRejectedValue({ response: { status: 422 } })
-      const wrapper = mount(TransferList)
+      const wrapper = mountWithModal()
       await flushPromises()
 
       await wrapper.find('.cancel-btn').trigger('click')
+      await wrapper.find('.modal-confirm').trigger('click')
       await flushPromises()
 
       expect(wrapper.text()).toContain('não pode ser cancelado')
@@ -183,10 +225,11 @@ describe('TransferList', () => {
     it('shows fallback error message on unexpected cancellation failure', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
       vi.mocked(transferApi.cancelTransfer).mockRejectedValue(new Error('Network Error'))
-      const wrapper = mount(TransferList)
+      const wrapper = mountWithModal()
       await flushPromises()
 
       await wrapper.find('.cancel-btn').trigger('click')
+      await wrapper.find('.modal-confirm').trigger('click')
       await flushPromises()
 
       expect(wrapper.text()).toContain('Erro ao cancelar')
