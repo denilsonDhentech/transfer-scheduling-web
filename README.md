@@ -84,17 +84,25 @@ npx vitest run
 npx vitest
 ```
 
-A suíte cobre 57 casos distribuídos em 4 arquivos:
+A suíte cobre 101 casos distribuídos em 5 arquivos:
 
 - `transferValidation.spec.ts` — funções de validação (unitários)
-- `transferApi.spec.ts` — camada `api/` com mock do Axios (unitários), incluindo os endpoints de simulação, cancelamento e busca por ID
+- `transferApi.spec.ts` — camada `api/` com mock do Axios (unitários), incluindo simulação, cancelamento, edição e busca por ID
 - `TransferForm.spec.ts` — formulário de agendamento e simulação de taxa (componente)
-- `TransferList.spec.ts` — extrato com badges de status e botão de cancelamento (componente)
+- `TransferList.spec.ts` — extrato: renderização, skeleton, ordenação, filtros, paginação, exportação, cancelamento e edição (componente)
+- `EditTransferModal.spec.ts` — modal de edição: pré-preenchimento, validações, submit, toasts de sucesso e erro (componente)
 
 ## Funcionalidades
 
 - **Agendar transferência** (`/`): formulário com validação local, exibe as contas mascaradas, o valor, a taxa calculada e a data de agendamento após sucesso, e mensagens de erro da API em caso de falha.
 - **Simular taxa** (`/`): botão no formulário que consulta `POST /transfers/simulate` e exibe a taxa estimada e o prazo em dias antes de confirmar o agendamento.
-- **Extrato** (`/statement`): tabela com todos os agendamentos cadastrados, exibindo status com badge colorido (Pendente, Executado, Cancelado) e botão de atualização manual.
-- **Cancelar agendamento**: botão "Cancelar" presente em todas as linhas do extrato — habilitado para agendamentos pendentes, desabilitado com tooltip explicativo para os demais.
+- **Extrato** (`/statement`): tabela paginada com todos os agendamentos, exibindo contas mascaradas e status com badge colorido (Pendente, Executado, Cancelado).
+- **Filtros no extrato**: filtros por status, intervalo de datas e conta origem/destino, aplicados via query params no backend.
+- **Paginação**: controles Anterior/Próxima com indicador de página e total de registros.
+- **Ordenação de colunas**: clique no cabeçalho para ordenar por qualquer coluna; segundo clique inverte a direção.
+- **Skeleton loading**: animação de carregamento nas linhas da tabela enquanto a requisição está em andamento.
+- **Exportar CSV**: botão que chama `GET /transfers/export` e dispara o download do arquivo.
+- **Cancelar agendamento**: botão "Cancelar" em todas as linhas — habilitado apenas para PENDING, com modal de confirmação antes de executar.
+- **Editar agendamento**: botão "Editar" em todas as linhas — habilitado apenas para PENDING; abre modal pré-preenchido para alterar valor e/ou data, recalculando a taxa via `PATCH /transfers/{id}`.
+- **Toasts globais**: notificações de sucesso e erro exibidas via composable `useToast`, sem dependência de biblioteca de UI.
 - **Dark mode**: alternância de tema claro/escuro persistida no `localStorage`.
