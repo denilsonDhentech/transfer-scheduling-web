@@ -6,6 +6,7 @@ import {
   simulateTransfer,
   cancelTransfer,
   getTransferById,
+  exportTransfers,
 } from '../api/transferApi'
 import type { TransferRequest, TransferResponse, FeeSimulationResponse } from '../types/transfer'
 
@@ -111,6 +112,25 @@ describe('cancelTransfer', () => {
     mockedAxios.patch.mockRejectedValue(apiError)
 
     await expect(cancelTransfer(1)).rejects.toThrow(apiError)
+  })
+})
+
+describe('exportTransfers', () => {
+  it('gets /transfers/export with blob responseType and returns the blob', async () => {
+    const blob = new Blob(['csv content'], { type: 'text/csv' })
+    mockedAxios.get.mockResolvedValue({ data: blob })
+
+    const result = await exportTransfers()
+
+    expect(mockedAxios.get).toHaveBeenCalledWith('/transfers/export', { responseType: 'blob' })
+    expect(result).toBe(blob)
+  })
+
+  it('propagates the error when the export API returns a failure', async () => {
+    const apiError = new Error('Request failed with status code 500')
+    mockedAxios.get.mockRejectedValue(apiError)
+
+    await expect(exportTransfers()).rejects.toThrow(apiError)
   })
 })
 
