@@ -71,8 +71,8 @@ describe('TransferList', () => {
 
     const firstRow = wrapper.findAll('tbody tr')[0].text()
     expect(firstRow).toContain('1')
-    expect(firstRow).toContain('1234567890')
-    expect(firstRow).toContain('0987654321')
+    expect(firstRow).toContain('•••••••890')
+    expect(firstRow).toContain('•••••••321')
     expect(firstRow).toContain('500')
     expect(firstRow).toContain('27')
     expect(firstRow).toContain('27/06/2026')
