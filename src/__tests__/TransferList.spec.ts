@@ -69,6 +69,84 @@ describe('TransferList', () => {
     expect(wrapper.find('table').exists()).toBe(true)
   })
 
+  describe('column sorting', () => {
+    it('sorts by transferDate ascending by default', async () => {
+      const transfers = [
+        { ...mockTransfers[0], id: 1, transferDate: '2026-07-10' },
+        { ...mockTransfers[1], id: 2, transferDate: '2026-06-30' },
+      ]
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(transfers)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const rows = wrapper.findAll('tbody tr')
+      expect(rows[0].text()).toContain('30/06/2026')
+      expect(rows[1].text()).toContain('10/07/2026')
+    })
+
+    it('reverses order when the active column header is clicked again', async () => {
+      const transfers = [
+        { ...mockTransfers[0], id: 1, transferDate: '2026-07-10' },
+        { ...mockTransfers[1], id: 2, transferDate: '2026-06-30' },
+      ]
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(transfers)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const headers = wrapper.findAll('th')
+      await headers[5].trigger('click')
+
+      const rows = wrapper.findAll('tbody tr')
+      expect(rows[0].text()).toContain('10/07/2026')
+      expect(rows[1].text()).toContain('30/06/2026')
+    })
+
+    it('sorts by a different column when its header is clicked', async () => {
+      const transfers = [
+        { ...mockTransfers[0], id: 2, amount: 200 },
+        { ...mockTransfers[1], id: 1, amount: 100 },
+      ]
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(transfers)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const headers = wrapper.findAll('th')
+      await headers[0].trigger('click')
+
+      const rows = wrapper.findAll('tbody tr')
+      expect(rows[0].text()).toContain('1')
+      expect(rows[1].text()).toContain('2')
+    })
+
+    it('marks the active sort column with sort-active class', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const headers = wrapper.findAll('th')
+      expect(headers[5].classes()).toContain('sort-active')
+    })
+
+    it('adds sort-asc class when sorting ascending', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const headers = wrapper.findAll('th')
+      expect(headers[5].classes()).toContain('sort-asc')
+    })
+
+    it('adds sort-desc class when sorting descending', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      const wrapper = mountWithModal()
+      await flushPromises()
+
+      const headers = wrapper.findAll('th')
+      await headers[5].trigger('click')
+      expect(headers[5].classes()).toContain('sort-desc')
+    })
+  })
+
   it('renders a row for each transfer returned by the API', async () => {
     vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
     const wrapper = mountWithModal()

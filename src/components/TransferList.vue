@@ -1,16 +1,40 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { listTransfers, cancelTransfer } from '../api/transferApi'
 import { formatDate, formatCurrency, formatStatus, maskAccount } from '../utils/formatters'
 import { showToast } from '../composables/useToast'
 import type { TransferResponse, TransferStatus } from '../types/transfer'
 import ConfirmModal from './ConfirmModal.vue'
 
+type SortKey = keyof TransferResponse
+type SortDir = 'asc' | 'desc'
+
 const transfers = ref<TransferResponse[]>([])
 const loading = ref(false)
 const fetchError = ref<string | null>(null)
 const cancelling = ref<number | null>(null)
 const pendingCancelId = ref<number | null>(null)
+const sortKey = ref<SortKey>('transferDate')
+const sortDir = ref<SortDir>('asc')
+
+const sortedTransfers = computed(() => {
+  return [...transfers.value].sort((a, b) => {
+    const va = a[sortKey.value]
+    const vb = b[sortKey.value]
+    if (va < vb) return sortDir.value === 'asc' ? -1 : 1
+    if (va > vb) return sortDir.value === 'asc' ? 1 : -1
+    return 0
+  })
+})
+
+function toggleSort(key: SortKey) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'asc'
+  }
+}
 
 async function fetchTransfers() {
   loading.value = true
@@ -113,19 +137,19 @@ onMounted(fetchTransfers)
       <table>
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Conta Origem</th>
-            <th>Conta Destino</th>
-            <th>Valor</th>
-            <th>Taxa</th>
-            <th>Data Transferência</th>
-            <th>Data Agendamento</th>
-            <th>Status</th>
+            <th class="sortable" :class="{ 'sort-active': sortKey === 'id', [`sort-${sortDir}`]: sortKey === 'id' }" @click="toggleSort('id')">ID</th>
+            <th class="sortable" :class="{ 'sort-active': sortKey === 'sourceAccount', [`sort-${sortDir}`]: sortKey === 'sourceAccount' }" @click="toggleSort('sourceAccount')">Conta Origem</th>
+            <th class="sortable" :class="{ 'sort-active': sortKey === 'destinationAccount', [`sort-${sortDir}`]: sortKey === 'destinationAccount' }" @click="toggleSort('destinationAccount')">Conta Destino</th>
+            <th class="sortable" :class="{ 'sort-active': sortKey === 'amount', [`sort-${sortDir}`]: sortKey === 'amount' }" @click="toggleSort('amount')">Valor</th>
+            <th class="sortable" :class="{ 'sort-active': sortKey === 'fee', [`sort-${sortDir}`]: sortKey === 'fee' }" @click="toggleSort('fee')">Taxa</th>
+            <th class="sortable" :class="{ 'sort-active': sortKey === 'transferDate', [`sort-${sortDir}`]: sortKey === 'transferDate' }" @click="toggleSort('transferDate')">Data Transferência</th>
+            <th class="sortable" :class="{ 'sort-active': sortKey === 'schedulingDate', [`sort-${sortDir}`]: sortKey === 'schedulingDate' }" @click="toggleSort('schedulingDate')">Data Agendamento</th>
+            <th class="sortable" :class="{ 'sort-active': sortKey === 'status', [`sort-${sortDir}`]: sortKey === 'status' }" @click="toggleSort('status')">Status</th>
             <th>Ações</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="transfer in transfers" :key="transfer.id">
+          <tr v-for="transfer in sortedTransfers" :key="transfer.id">
             <td>{{ transfer.id }}</td>
             <td>{{ maskAccount(transfer.sourceAccount) }}</td>
             <td>{{ maskAccount(transfer.destinationAccount) }}</td>
@@ -241,6 +265,35 @@ th {
   color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  color: var(--color-text-primary);
+}
+
+.sortable::after {
+  content: ' ⇅';
+  opacity: 0.3;
+  font-size: 0.7rem;
+}
+
+.sort-active {
+  color: var(--color-text-primary);
+}
+
+.sort-active.sort-asc::after {
+  content: ' ▲';
+  opacity: 1;
+}
+
+.sort-active.sort-desc::after {
+  content: ' ▼';
+  opacity: 1;
 }
 
 td {
