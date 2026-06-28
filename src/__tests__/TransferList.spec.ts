@@ -101,4 +101,76 @@ describe('TransferList', () => {
 
     expect(transferApi.listTransfers).toHaveBeenCalledTimes(2)
   })
+
+  describe('cancel button', () => {
+    it('renders cancel button only for PENDING rows', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      const wrapper = mount(TransferList)
+      await flushPromises()
+
+      const rows = wrapper.findAll('tbody tr')
+      expect(rows[0].find('.cancel-btn').exists()).toBe(true)
+      expect(rows[1].find('.cancel-btn').exists()).toBe(false)
+    })
+
+    it('calls cancelTransfer with the correct id when clicked', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      vi.mocked(transferApi.cancelTransfer).mockResolvedValue(undefined)
+      const wrapper = mount(TransferList)
+      await flushPromises()
+
+      await wrapper.find('.cancel-btn').trigger('click')
+      await flushPromises()
+
+      expect(transferApi.cancelTransfer).toHaveBeenCalledWith(1)
+    })
+
+    it('refreshes the list after a successful cancellation', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      vi.mocked(transferApi.cancelTransfer).mockResolvedValue(undefined)
+      const wrapper = mount(TransferList)
+      await flushPromises()
+
+      await wrapper.find('.cancel-btn').trigger('click')
+      await flushPromises()
+
+      expect(transferApi.listTransfers).toHaveBeenCalledTimes(2)
+    })
+
+    it('shows error message when cancellation returns 404', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      vi.mocked(transferApi.cancelTransfer).mockRejectedValue({ response: { status: 404 } })
+      const wrapper = mount(TransferList)
+      await flushPromises()
+
+      await wrapper.find('.cancel-btn').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Agendamento não encontrado')
+    })
+
+    it('shows error message when cancellation returns 422', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      vi.mocked(transferApi.cancelTransfer).mockRejectedValue({ response: { status: 422 } })
+      const wrapper = mount(TransferList)
+      await flushPromises()
+
+      await wrapper.find('.cancel-btn').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('não pode ser cancelado')
+    })
+
+    it('shows fallback error message on unexpected cancellation failure', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      vi.mocked(transferApi.cancelTransfer).mockRejectedValue(new Error('Network Error'))
+      const wrapper = mount(TransferList)
+      await flushPromises()
+
+      await wrapper.find('.cancel-btn').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Erro ao cancelar')
+    })
+  })
 })

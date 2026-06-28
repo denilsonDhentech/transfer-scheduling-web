@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { listTransfers } from '../api/transferApi'
+import { listTransfers, cancelTransfer } from '../api/transferApi'
 import { formatDate, formatCurrency, formatStatus } from '../utils/formatters'
 import type { TransferResponse, TransferStatus } from '../types/transfer'
 
 const transfers = ref<TransferResponse[]>([])
 const loading = ref(false)
 const fetchError = ref<string | null>(null)
+const cancelling = ref<number | null>(null)
+const cancelError = ref<string | null>(null)
 
 async function fetchTransfers() {
   loading.value = true
@@ -24,6 +26,27 @@ function statusClass(status: TransferStatus): string {
   return `status-${status.toLowerCase()}`
 }
 
+async function handleCancel(id: number) {
+  cancelError.value = null
+  cancelling.value = id
+  try {
+    await cancelTransfer(id)
+    await fetchTransfers()
+  } catch (err: unknown) {
+    const axiosError = err as { response?: { data?: Record<string, string>; status?: number } }
+    const status = axiosError.response?.data?.status ?? axiosError.response?.status
+    if (status === 404) {
+      cancelError.value = 'Agendamento não encontrado.'
+    } else if (status === 422) {
+      cancelError.value = 'Este agendamento não pode ser cancelado.'
+    } else {
+      cancelError.value = axiosError.response?.data?.error ?? 'Erro ao cancelar. Tente novamente.'
+    }
+  } finally {
+    cancelling.value = null
+  }
+}
+
 onMounted(fetchTransfers)
 </script>
 
@@ -37,6 +60,7 @@ onMounted(fetchTransfers)
     </div>
 
     <div v-if="fetchError" class="feedback error-box">{{ fetchError }}</div>
+    <div v-if="cancelError" class="feedback error-box">{{ cancelError }}</div>
 
     <div v-else-if="loading" class="feedback info-box">Carregando agendamentos...</div>
 
@@ -56,6 +80,7 @@ onMounted(fetchTransfers)
             <th>Data Transferência</th>
             <th>Data Agendamento</th>
             <th>Status</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -71,6 +96,16 @@ onMounted(fetchTransfers)
               <span class="status-badge" :class="statusClass(transfer.status)">
                 {{ formatStatus(transfer.status) }}
               </span>
+            </td>
+            <td>
+              <button
+                v-if="transfer.status === 'PENDING'"
+                class="cancel-btn"
+                :disabled="cancelling === transfer.id"
+                @click="handleCancel(transfer.id)"
+              >
+                {{ cancelling === transfer.id ? 'Cancelando...' : 'Cancelar' }}
+              </button>
             </td>
           </tr>
         </tbody>
@@ -192,5 +227,27 @@ tbody tr:hover {
 .status-cancelled {
   background: var(--badge-cancelled-bg);
   color: var(--badge-cancelled-text);
+}
+
+.cancel-btn {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: var(--color-error-bg);
+}
+
+.cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
