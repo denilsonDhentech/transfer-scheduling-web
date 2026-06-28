@@ -103,14 +103,33 @@ describe('TransferList', () => {
   })
 
   describe('cancel button', () => {
-    it('renders cancel button only for PENDING rows', async () => {
+    it('renders cancel button on every row', async () => {
       vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
       const wrapper = mount(TransferList)
       await flushPromises()
 
       const rows = wrapper.findAll('tbody tr')
       expect(rows[0].find('.cancel-btn').exists()).toBe(true)
-      expect(rows[1].find('.cancel-btn').exists()).toBe(false)
+      expect(rows[1].find('.cancel-btn').exists()).toBe(true)
+    })
+
+    it('enables cancel button only for PENDING rows', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      const wrapper = mount(TransferList)
+      await flushPromises()
+
+      const rows = wrapper.findAll('tbody tr')
+      expect((rows[0].find('.cancel-btn').element as HTMLButtonElement).disabled).toBe(false)
+      expect((rows[1].find('.cancel-btn').element as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it('shows tooltip on disabled cancel button for non-PENDING rows', async () => {
+      vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+      const wrapper = mount(TransferList)
+      await flushPromises()
+
+      const rows = wrapper.findAll('tbody tr')
+      expect(rows[1].find('.cancel-btn').attributes('title')).toContain('pendentes')
     })
 
     it('calls cancelTransfer with the correct id when clicked', async () => {

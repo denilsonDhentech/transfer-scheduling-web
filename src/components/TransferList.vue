@@ -62,13 +62,13 @@ onMounted(fetchTransfers)
     <div v-if="fetchError" class="feedback error-box">{{ fetchError }}</div>
     <div v-if="cancelError" class="feedback error-box">{{ cancelError }}</div>
 
-    <div v-else-if="loading" class="feedback info-box">Carregando agendamentos...</div>
+    <div v-if="loading" class="feedback info-box">Carregando agendamentos...</div>
 
-    <div v-else-if="transfers.length === 0" class="feedback info-box">
+    <div v-else-if="!fetchError && transfers.length === 0" class="feedback info-box">
       Nenhum agendamento encontrado.
     </div>
 
-    <div v-else class="table-wrapper">
+    <div v-else-if="!fetchError && transfers.length > 0" class="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -99,10 +99,10 @@ onMounted(fetchTransfers)
             </td>
             <td>
               <button
-                v-if="transfer.status === 'PENDING'"
                 class="cancel-btn"
-                :disabled="cancelling === transfer.id"
-                @click="handleCancel(transfer.id)"
+                :disabled="transfer.status !== 'PENDING' || cancelling === transfer.id"
+                :title="transfer.status !== 'PENDING' ? 'Somente agendamentos pendentes podem ser cancelados' : ''"
+                @click="transfer.status === 'PENDING' && handleCancel(transfer.id)"
               >
                 {{ cancelling === transfer.id ? 'Cancelando...' : 'Cancelar' }}
               </button>
