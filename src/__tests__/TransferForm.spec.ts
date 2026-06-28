@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import TransferForm from '../components/TransferForm.vue'
 import * as transferApi from '../api/transferApi'
-import type { TransferResponse } from '../types/transfer'
+import type { TransferResponse, FeeSimulationResponse } from '../types/transfer'
 
 vi.mock('../api/transferApi')
 
@@ -17,6 +17,11 @@ const mockResponse: TransferResponse = {
   transferDate: TODAY,
   schedulingDate: TODAY,
   status: 'PENDING',
+}
+
+const mockSimulation: FeeSimulationResponse = {
+  fee: 27.5,
+  days: 1,
 }
 
 async function fillValidForm(wrapper: ReturnType<typeof mount>) {
@@ -109,5 +114,70 @@ describe('TransferForm', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Erro inesperado')
+  })
+
+  describe('simulate button', () => {
+    it('renders the simulate button', () => {
+      const wrapper = mount(TransferForm)
+      expect(wrapper.find('.btn-secondary').exists()).toBe(true)
+      expect(wrapper.find('.btn-secondary').text()).toBe('Simular taxa')
+    })
+
+    it('does not call simulateTransfer when form is invalid', async () => {
+      const wrapper = mount(TransferForm)
+      await wrapper.find('.btn-secondary').trigger('click')
+      await flushPromises()
+
+      expect(transferApi.simulateTransfer).not.toHaveBeenCalled()
+    })
+
+    it('calls simulateTransfer with correct data on valid form', async () => {
+      vi.mocked(transferApi.simulateTransfer).mockResolvedValue(mockSimulation)
+      const wrapper = mount(TransferForm)
+      await fillValidForm(wrapper)
+      await wrapper.find('.btn-secondary').trigger('click')
+      await flushPromises()
+
+      expect(transferApi.simulateTransfer).toHaveBeenCalledWith({
+        sourceAccount: '1234567890',
+        destinationAccount: '0987654321',
+        amount: 500,
+        transferDate: TODAY,
+      })
+    })
+
+    it('shows simulation result with fee and days', async () => {
+      vi.mocked(transferApi.simulateTransfer).mockResolvedValue(mockSimulation)
+      const wrapper = mount(TransferForm)
+      await fillValidForm(wrapper)
+      await wrapper.find('.btn-secondary').trigger('click')
+      await flushPromises()
+
+      const text = wrapper.text()
+      expect(text).toContain('Simulação de taxa')
+      expect(text).toContain('27,50')
+      expect(text).toContain('1 dia')
+    })
+
+    it('shows simulation error when the API fails', async () => {
+      const err = { response: { data: { error: 'Data sem taxa aplicável.' } } }
+      vi.mocked(transferApi.simulateTransfer).mockRejectedValue(err)
+      const wrapper = mount(TransferForm)
+      await fillValidForm(wrapper)
+      await wrapper.find('.btn-secondary').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Data sem taxa aplicável.')
+    })
+
+    it('shows fallback simulation error when response has no error body', async () => {
+      vi.mocked(transferApi.simulateTransfer).mockRejectedValue(new Error('Network Error'))
+      const wrapper = mount(TransferForm)
+      await fillValidForm(wrapper)
+      await wrapper.find('.btn-secondary').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Erro ao simular')
+    })
   })
 })
