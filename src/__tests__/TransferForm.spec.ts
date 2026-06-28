@@ -16,6 +16,7 @@ const mockResponse: TransferResponse = {
   fee: 27.5,
   transferDate: TODAY,
   schedulingDate: TODAY,
+  status: 'PENDING',
 }
 
 async function fillValidForm(wrapper: ReturnType<typeof mount>) {

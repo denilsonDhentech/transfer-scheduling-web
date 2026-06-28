@@ -56,6 +56,12 @@ onMounted(() => {
   --color-info-bg: #f9fafb;
   --color-info-text: #6b7280;
   --color-info-border: #e5e7eb;
+  --badge-pending-bg: #fef3c7;
+  --badge-pending-text: #92400e;
+  --badge-executed-bg: #d1fae5;
+  --badge-executed-text: #065f46;
+  --badge-cancelled-bg: #e5e7eb;
+  --badge-cancelled-text: #4b5563;
 }
 
 html.dark {
@@ -77,6 +83,12 @@ html.dark {
   --color-info-bg: #1f2937;
   --color-info-text: #9ca3af;
   --color-info-border: #374151;
+  --badge-pending-bg: rgba(251, 191, 36, 0.15);
+  --badge-pending-text: #fbbf24;
+  --badge-executed-bg: rgba(52, 211, 153, 0.15);
+  --badge-executed-text: #34d399;
+  --badge-cancelled-bg: rgba(107, 114, 128, 0.2);
+  --badge-cancelled-text: #9ca3af;
 }
 
 *,

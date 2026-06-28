@@ -5,6 +5,8 @@ export interface TransferRequest {
   transferDate: string
 }
 
+export type TransferStatus = 'PENDING' | 'EXECUTED' | 'CANCELLED'
+
 export interface TransferResponse {
   id: number
   sourceAccount: string
@@ -13,4 +15,10 @@ export interface TransferResponse {
   fee: number
   transferDate: string
   schedulingDate: string
+  status: TransferStatus
+}
+
+export interface FeeSimulationResponse {
+  fee: number
+  days: number
 }
