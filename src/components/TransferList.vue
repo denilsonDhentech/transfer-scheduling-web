@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { listTransfers } from '../api/transferApi'
-import { formatDate, formatCurrency } from '../utils/formatters'
-import type { TransferResponse } from '../types/transfer'
+import { formatDate, formatCurrency, formatStatus } from '../utils/formatters'
+import type { TransferResponse, TransferStatus } from '../types/transfer'
 
 const transfers = ref<TransferResponse[]>([])
 const loading = ref(false)
@@ -18,6 +18,10 @@ async function fetchTransfers() {
   } finally {
     loading.value = false
   }
+}
+
+function statusClass(status: TransferStatus): string {
+  return `status-${status.toLowerCase()}`
 }
 
 onMounted(fetchTransfers)
@@ -51,6 +55,7 @@ onMounted(fetchTransfers)
             <th>Taxa</th>
             <th>Data Transferência</th>
             <th>Data Agendamento</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -62,6 +67,11 @@ onMounted(fetchTransfers)
             <td>{{ formatCurrency(transfer.fee) }}</td>
             <td>{{ formatDate(transfer.transferDate) }}</td>
             <td>{{ formatDate(transfer.schedulingDate) }}</td>
+            <td>
+              <span class="status-badge" :class="statusClass(transfer.status)">
+                {{ formatStatus(transfer.status) }}
+              </span>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -158,5 +168,29 @@ td {
 
 tbody tr:hover {
   background: var(--color-surface-hover);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pending {
+  background: var(--badge-pending-bg);
+  color: var(--badge-pending-text);
+}
+
+.status-executed {
+  background: var(--badge-executed-bg);
+  color: var(--badge-executed-text);
+}
+
+.status-cancelled {
+  background: var(--badge-cancelled-bg);
+  color: var(--badge-cancelled-text);
 }
 </style>

@@ -15,6 +15,7 @@ const mockTransfers: TransferResponse[] = [
     fee: 27.5,
     transferDate: '2026-06-27',
     schedulingDate: '2026-06-27',
+    status: 'PENDING',
   },
   {
     id: 2,
@@ -24,6 +25,7 @@ const mockTransfers: TransferResponse[] = [
     fee: 12,
     transferDate: '2026-07-05',
     schedulingDate: '2026-06-27',
+    status: 'EXECUTED',
   },
 ]
 
@@ -59,6 +61,16 @@ describe('TransferList', () => {
     expect(firstRow).toContain('500')
     expect(firstRow).toContain('27')
     expect(firstRow).toContain('27/06/2026')
+  })
+
+  it('renders status badge with correct label for each status', async () => {
+    vi.mocked(transferApi.listTransfers).mockResolvedValue(mockTransfers)
+    const wrapper = mount(TransferList)
+    await flushPromises()
+
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows[0].find('.status-pending').text()).toBe('Pendente')
+    expect(rows[1].find('.status-executed').text()).toBe('Executado')
   })
 
   it('shows empty state message when there are no transfers', async () => {
